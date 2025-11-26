@@ -7,14 +7,13 @@ license = "AGPLv3"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.11,<3.14"
 pydantic = "^2.0.0"
 visionapi = { git = "https://github.com/starwit/vision-api.git", subdirectory = "python/visionapi", tag = "3.5.0" }
-visionlib = { git = "https://github.com/starwit/vision-lib.git", subdirectory = "python", tag = "0.11.2" }
-redis = "^5.0.0"
+visionlib = { git = "https://github.com/starwit/vision-lib.git", subdirectory = "python", tag = "0.14.2" }
 pydantic-settings = "^2.0.3"
 prometheus-client = "^0.17.1"
-cameratransform = { git = "https://github.com/rgerum/cameratransform", rev = "ed36491" }
+cameratransform = "1.2.1"
 geojson-pydantic = "^1.1.2"
 shapely = "^2.0.6"
 pytest = "8.4.1"
