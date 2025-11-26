@@ -153,9 +153,9 @@ def test_map_mode_with_location(redis_publisher_mock, inject_consumer_messages, 
     assert msg.frame.camera_location.latitude == 10.0
     assert msg.frame.camera_location.longitude == 20.0
     for detection in msg.detections:
-        # Since the detection is at the center of the image, it should map close to the camera location but offset slightly
-        assert 0.00001 < abs(detection.geo_coordinate.latitude - 10.0) < 0.01
-        assert 0.00001 < abs(detection.geo_coordinate.longitude - 20.0) < 0.01
+        # Since the detection is at the center of the image, it should map close to the camera location but offset slightly to the southeast
+        assert 0.00001 < (10.0 - detection.geo_coordinate.latitude) < 0.01
+        assert 0.00001 < (detection.geo_coordinate.longitude - 20.0) < 0.01
 
 def _make_sae_msg_bytes(timestamp: int, source_id: str, location: Tuple[float, float] = None, detections: List[Detection] = None) -> bytes:
     sae_msg = SaeMessage()
