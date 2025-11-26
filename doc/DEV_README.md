@@ -7,7 +7,7 @@ You can use [docker_build.sh](docker_build.sh) to build an image for local testi
 
 Once build you can run Docker image locally like so:
 ```bash
-docker run -it --rm -v ./settings.yaml:/code/ starwitorg/starwitorg/sae-geo-mapper:0.7.0
+docker run -it --rm -v ./settings.yaml:/code/ starwitorg/sae-geo-mapper:local
 ```
 Please note, that you should provide a settings.yaml that configures application to your needs. See [template](settings.template.yaml) for how to do that.
 
