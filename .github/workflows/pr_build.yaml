@@ -28,7 +28,7 @@ jobs:
       #----------------------------------------------
       # install your root project, if required
       #----------------------------------------------
-      - name: Install project
+      - name: Install project and run tests
         run: |
           poetry config cache-dir /root/.cache/pypoetry
           bash -c "make test"
