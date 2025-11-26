@@ -2,13 +2,12 @@ from unittest.mock import patch
 
 from visionapi.sae_pb2 import Detection, SaeMessage
 
-# from geomapper.config import GeoMapperConfig, RedisConfig
+# from geomapper.config import GeoMapperConfig, RedisConfig, CameraGeomappingConfig, CameraCopyConfig
 # from geomapper.stage import run_stage
 
 # Use cases
 
-## Frame cam location set => map detections
-## Frame cam location set, no mapping parameters => copy location to all detection
+## Frame cam location set => map detections (depending on mode)
 ## Frame cam location not set => discard and log warning
 
 
@@ -22,7 +21,7 @@ from visionapi.sae_pb2 import Detection, SaeMessage
 def not_test_smoke(mock_redis_publisher, mock_redis_consumer, mock_config):
     mock_config.return_value = GeoMapperConfig(
         log_level='WARNING',
-        cameras=[MappingCameraConfig(
+        cameras=[CameraCopyConfig(
             stream_id='stream1',
 
         )],

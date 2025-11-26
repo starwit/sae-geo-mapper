@@ -13,11 +13,11 @@ class RedisConfig(BaseModel):
     output_stream_prefix: str = 'geomapper'
     
 class CameraCopyConfig(BaseModel):
-    mode: Literal['copy']
+    mode: Literal['copy'] = 'copy'
     stream_id: str
     
 class CameraGeomappingConfig(BaseModel):
-    mode: Literal['map']
+    mode: Literal['map'] = 'map'
     stream_id: str
     focallength_mm: float = None
     sensor_height_mm: float = None
