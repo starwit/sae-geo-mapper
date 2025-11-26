@@ -174,10 +174,10 @@ def _make_sae_msg_bytes(timestamp: int, source_id: str, location: Tuple[float, f
 
 def _make_detection(center_xy: Tuple[float], class_id: int) -> Detection:
     detection = Detection()
-    detection.bounding_box.min_x=center_xy[0]
-    detection.bounding_box.min_y=center_xy[1]
-    detection.bounding_box.max_x=center_xy[0]
-    detection.bounding_box.max_y=center_xy[1]
-    detection.confidence=0.9
-    detection.class_id=class_id
+    detection.bounding_box.min_x = center_xy[0]
+    detection.bounding_box.min_y = center_xy[1]
+    detection.bounding_box.max_x = center_xy[0]
+    detection.bounding_box.max_y = center_xy[1]
+    detection.confidence = 0.9
+    detection.class_id = class_id
     return detection
