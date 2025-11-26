@@ -1,4 +1,5 @@
-from typing import List, Optional, Literal
+from enum import Enum
+from typing import List, Literal, Optional
 
 from geojson_pydantic import Polygon
 from pydantic import BaseModel, Field
@@ -11,13 +12,17 @@ class RedisConfig(BaseModel):
     port: Annotated[int, Field(ge=1, le=65536)] = 6379
     input_stream_prefix: str = 'objecttracker'
     output_stream_prefix: str = 'geomapper'
+
+class CameraMode(str, Enum):
+    COPY = 'copy'
+    MAP = 'map'
     
 class CameraCopyConfig(BaseModel):
-    mode: Literal['copy'] = 'copy'
+    mode: Literal[CameraMode.COPY] = CameraMode.COPY
     stream_id: str
     
 class CameraGeomappingConfig(BaseModel):
-    mode: Literal['map'] = 'map'
+    mode: Literal[CameraMode.MAP] = CameraMode.MAP
     stream_id: str
     focallength_mm: float = None
     sensor_height_mm: float = None
