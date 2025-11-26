@@ -8,11 +8,13 @@ from geomapper.config import (CameraCopyConfig, CameraGeomappingConfig,
 def test_empty_cameras():
     with pytest.raises(ValidationError):
         GeoMapperConfig(
+            log_level='WARNING',
             cameras=[]
         )
 
 def test_copy_camera_dict():
     config = GeoMapperConfig(
+        log_level='WARNING',
         cameras=[{
             'mode': 'copy',
             'stream_id': 'stream1',
@@ -23,6 +25,7 @@ def test_copy_camera_dict():
 
 def test_copy_camera_constructor():
     config = GeoMapperConfig(
+        log_level='WARNING',
         cameras=[CameraCopyConfig(stream_id='stream')]
     )
 
@@ -30,6 +33,7 @@ def test_copy_camera_constructor():
 
 def test_mapping_camera_dict():
     config = GeoMapperConfig(
+        log_level='WARNING',
         cameras=[{
             'mode': 'map',
             'stream_id': 'stream1',
@@ -42,6 +46,7 @@ def test_mapping_camera_dict():
 
 def test_mapping_camera_constructor():
     config = GeoMapperConfig(
+        log_level='WARNING',
         cameras=[CameraGeomappingConfig(
             stream_id='stream1',
             heading_deg=180,
