@@ -30,15 +30,14 @@ def set_cameras_config():
 @pytest.fixture
 def redis_publisher_mock():
     with patch('geomapper.stage.RedisPublisher') as mock_publisher:
-        yield mock_publisher.return_value
+        yield mock_publisher.return_value.__enter__.return_value
 
 @pytest.fixture
 def inject_consumer_messages():
     with patch('geomapper.stage.RedisConsumer') as mock_consumer:
         def _inject_messages(messages):
-            mock_consumer.return_value.return_value.__iter__.return_value = iter(messages)
+            mock_consumer.return_value.__enter__.return_value.__iter__.return_value = iter(messages)
         yield _inject_messages
-
 
 def test_missing_location(redis_publisher_mock, inject_consumer_messages, set_cameras_config):
     set_cameras_config([CameraCopyConfig(stream_id='stream1')])
