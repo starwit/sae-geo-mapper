@@ -9,7 +9,7 @@ from shapely import Polygon
 from shapely.geometry import shape
 from visionapi.sae_pb2 import BoundingBox, Detection, SaeMessage, PositionMessage
 
-from .config import CameraConfig, GeoMapperConfig, MappingMode
+from .config import MappingCameraConfig, GeoMapperConfig, MappingMode
 
 logging.basicConfig(format='%(asctime)s %(name)-15s %(levelname)-8s %(processName)-10s %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class GeoMapper:
         logger.setLevel(self._config.log_level.value)
 
         self._cameras: Dict[str, ct.Camera] = dict()
-        self._cam_configs: Dict[str, CameraConfig] = dict()
+        self._cam_configs: Dict[str, MappingCameraConfig] = dict()
         self._mapping_areas: Dict[str, Polygon] = dict()
         self._setup()
 

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from geojson_pydantic import Polygon
 from pydantic import BaseModel, Field
@@ -6,24 +6,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Annotated
 from visionlib.pipeline.settings import LogLevel, YamlConfigSettingsSource
 
-from enum import Enum
-
-class MappingMode(str, Enum):
-    dynamic = 'dynamic'
-    static = 'static'
-
 class RedisConfig(BaseModel):
     host: str = 'localhost'
     port: Annotated[int, Field(ge=1, le=65536)] = 6379
     input_stream_prefix: str = 'objecttracker'
     output_stream_prefix: str = 'geomapper'
     
-class MappingStrategy(BaseModel):
-    mode: MappingMode = MappingMode.dynamic 
-
-class CameraConfig(BaseModel):
+class CameraCopyConfig(BaseModel):
+    mode: Literal['copy']
     stream_id: str
-    passthrough: bool
+    
+class CameraGeomappingConfig(BaseModel):
+    mode: Literal['map']
+    stream_id: str
     focallength_mm: float = None
     sensor_height_mm: float = None
     sensor_width_mm: float = None
@@ -34,8 +29,6 @@ class CameraConfig(BaseModel):
     elevation_m: float = None
     tilt_deg: float = None
     roll_deg: float = None
-    pos_lat: float = None
-    pos_lon: float = None
     heading_deg: float = None
     abc_distortion_a: Optional[float] = None
     abc_distortion_b: Optional[float] = None
@@ -46,12 +39,13 @@ class CameraConfig(BaseModel):
     mapping_area: Optional[Polygon] = None
     remove_unmapped_detections: bool = False
 
+CameraConfig = Annotated[CameraGeomappingConfig | CameraCopyConfig, Field(discriminator='mode')]
+
 class GeoMapperConfig(BaseSettings):
     log_level: LogLevel = LogLevel.WARNING
-    redis: RedisConfig
-    cameras: List[CameraConfig]
+    redis: RedisConfig = RedisConfig()
+    cameras: List[CameraConfig] = Field(min_length=1)
     object_center_elevation_m: float = 0
-    mapping_strategy: MappingStrategy = MappingStrategy()
     prometheus_port: Annotated[int, Field(gt=1024, le=65536)] = 8000
 
     model_config = SettingsConfigDict(env_nested_delimiter='__')
