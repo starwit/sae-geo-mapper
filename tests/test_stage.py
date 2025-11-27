@@ -36,7 +36,7 @@ def redis_publisher_mock():
 def inject_consumer_messages():
     with patch('geomapper.stage.RedisConsumer') as mock_consumer:
         def _inject_messages(messages):
-            mock_consumer.return_value.__enter__.return_value.__iter__.return_value = iter(messages)
+            mock_consumer.return_value.__enter__.return_value.return_value.__iter__.return_value = iter(messages)
         yield _inject_messages
 
 def test_missing_location(redis_publisher_mock, inject_consumer_messages, set_cameras_config):
