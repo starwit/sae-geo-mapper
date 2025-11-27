@@ -1,6 +1,17 @@
 # Build & Development of geo mapper package
 This section contains all information about how to build & run geo mapper for development purposes
 
+## Testing
+To run unit tests use either Makefile with the following command:
+```bash
+make test
+```
+Or you can run tests directly with poetry like so:
+```bash
+poetry run pytest -v
+```
+Parameter -v will create a nice list of all passed/failed tests.
+
 ## Docker
 
 You can use [docker_build.sh](docker_build.sh) to build an image for local testing. 
