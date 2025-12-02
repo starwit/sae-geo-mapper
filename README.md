@@ -20,6 +20,12 @@ See [dev readme](doc/DEV_README.md) for build & package instructions.
 - **Output** is the input `SaeMessage` with geo-coordinates added to every `Detection`. All other fields are preserved.
 
 # Changelog
+## 1.0.0
+- Refactor config and slightly change the role of this component within the SAE. Camera location data has now been fully moved to the position-source.
+  - `copy` and `map` mode
+  - Refuses to forward messages without camera location
+  - Remove option to pass through messages unaltered
+- Breaking config change (due to role change above): As the previous combinations of config options was very hard to digest, describing a way to migrate the configuration for all cases would be unnecessary cumbersome and not entirely helpful. It is therefore best to recreate the config starting at the 1.0.0 config template.
 ## 0.7.0
 - Upgrade `vision-api` to `3.1.0`
 - Add `SaeMessage.frame.camera_location` if `pos_lat` and `pos_lon` is set (independent of `passthrough` mode)
