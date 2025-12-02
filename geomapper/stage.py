@@ -45,7 +45,7 @@ def run_stage():
                                  stream_keys=[f'{CONFIG.redis.input_stream_prefix}:{cam.stream_id}' for cam in CONFIG.cameras])
     publisher_ctx = RedisPublisher(CONFIG.redis.host, CONFIG.redis.port)
 
-    with consumer_ctx as iter_messages, publisher_ctx as publisher:
+    with consumer_ctx as iter_messages, publisher_ctx as publish:
         for stream_key, proto_data in iter_messages():
             if stop_event.is_set():
                 break
@@ -63,5 +63,5 @@ def run_stage():
                 continue
             
             with REDIS_PUBLISH_DURATION.time():
-                publisher(f'{CONFIG.redis.output_stream_prefix}:{stream_id}', output_proto_data)
+                publish(f'{CONFIG.redis.output_stream_prefix}:{stream_id}', output_proto_data)
             
