@@ -1,13 +1,24 @@
 # Build & Development of geo mapper package
 This section contains all information about how to build & run geo mapper for development purposes
 
+## Testing
+To run unit tests use either Makefile with the following command:
+```bash
+make test
+```
+Or you can run tests directly with poetry like so:
+```bash
+poetry run pytest -v
+```
+Parameter -v will create a nice list of all passed/failed tests.
+
 ## Docker
 
 You can use [docker_build.sh](docker_build.sh) to build an image for local testing. 
 
 Once build you can run Docker image locally like so:
 ```bash
-docker run -it --rm -v ./settings.yaml:/code/ starwitorg/starwitorg/sae-geo-mapper:0.7.0
+docker run -it --rm -v ./settings.yaml:/code/ starwitorg/sae-geo-mapper:local
 ```
 Please note, that you should provide a settings.yaml that configures application to your needs. See [template](settings.template.yaml) for how to do that.
 

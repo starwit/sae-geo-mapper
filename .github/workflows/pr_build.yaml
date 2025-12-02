@@ -10,7 +10,7 @@ jobs:
     name: PR Build with Poetry
     runs-on: [self-hosted, linux, X64]
     container:
-        image: starwitorg/base-python-image:0.0.15
+        image: starwitorg/base-python-image:3.13.1-py3.13-ptr2.1.5
         volumes:
             - /home/githubrunner/.cache/pypoetry:/root/.cache/pypoetry
     steps:
@@ -28,7 +28,7 @@ jobs:
       #----------------------------------------------
       # install your root project, if required
       #----------------------------------------------
-      - name: Install project
+      - name: Install project and run tests
         run: |
           poetry config cache-dir /root/.cache/pypoetry
           bash -c "make test"

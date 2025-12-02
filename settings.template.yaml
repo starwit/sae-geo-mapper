@@ -1,6 +1,7 @@
 cameras:
   - stream_id: stream           # The stream id / suffix to read from and write to
-    passthrough: false          # If the stream should be passed through without geo mapping (all other parameters except `pos_lon` and `pos_lat` are ignored if true)
+    mode: map                   # `copy` (copy camera location to detections, i.e. map to a point) or `map` (do geomapping according to parameters below)
+    # The parameters below are only relevant in `map` mode
     view_x_deg: 90              # Horizontal angle of view in degrees. If you only specify view_x_deg, view_y_deg is chosen according to the image aspect ratio
     # view_y_deg: 54
     image_width_px: 1920
@@ -8,8 +9,6 @@ cameras:
     # focallength_mm: 20        # view_*_deg and image dimensions are equivalent (only one set of parameters should be set!). Sensor size is harder to obtain and therefore only second choice.
     # sensor_height_mm: 16      # See above
     # sensor_width_mm: 9        # See above
-    pos_lat: 52                 # Camera latitude (is added to metadata if set, can be used in passthrough mode)
-    pos_lon: 10                 # Camera longitude (is added to metadata if set, can be used in passthrough mode)
     elevation_m: 10             # Camera height above ground
     tilt_deg: 45                # 0° => camera facing straight down (image plane parallel to the ground), 90° => camera pointed at horizon (image plane 90° to the ground)
     roll_deg: 0                 # Rotation of the camera along the optical axis
@@ -20,7 +19,7 @@ cameras:
     # abc_distortion_a: null    # See above
     # abc_distortion_b: null
     # abc_distortion_c: null
-    # mapping_area:             # Must be a geojson `Polygon`. If set, only detections within that polygon will be mapped (i.e. will have coordinates set)
+    # mapping_area:             # Must be a geojson `Polygon`. If set, only detections within that polygon will be mapped (i.e. will have coordinates set). This only really makes sense if the camera has a static location.
     #   type: Polygon
     #   coordinates: [[         # [lon, lat] format. The last point must equal the first!
     #       [10.01, 50.01],
@@ -29,12 +28,9 @@ cameras:
     #       [10.03, 50.02],
     #       [10.01, 50.01]
     #     ]]
-    remove_unmapped_detections: false # If unmapped detections should be removed (i.e. detections filtered by mapping_area, see above)
+    # remove_unmapped_detections: false # If unmapped detections should be removed (i.e. detections filtered by mapping_area, see above)
 
 object_center_elevation_m: 0    # Elevation of the object center above ground (used for correcting perspective when mapping object locations into 3D space). In many cases 1.0m makes sense as a starting point.
-
-mapping_strategy:
-  mode: dynamic # static: take mapping from config file, dynamic: read from position from video frame
 
 log_level: DEBUG
 redis:

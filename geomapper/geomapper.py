@@ -7,9 +7,10 @@ from prometheus_client import Counter, Histogram, Summary
 from shapely import Point as ShapelyPoint
 from shapely import Polygon
 from shapely.geometry import shape
-from visionapi.sae_pb2 import BoundingBox, Detection, SaeMessage, PositionMessage
+from visionapi.sae_pb2 import BoundingBox, Detection, SaeMessage
+from visionapi.common_pb2 import MessageType
 
-from .config import CameraConfig, GeoMapperConfig, MappingMode
+from .config import GeoMapperConfig, CameraConfig, CameraMode
 
 logging.basicConfig(format='%(asctime)s %(name)-15s %(levelname)-8s %(processName)-10s %(message)s')
 logger = logging.getLogger(__name__)
@@ -40,46 +41,44 @@ class GeoMapper:
         for cam_conf in self._config.cameras:
             self._cam_configs[cam_conf.stream_id] = cam_conf
 
-            if cam_conf.passthrough:
-                continue
+            if cam_conf.mode == CameraMode.MAP:
+                lens_correction = ct.NoDistortion()
+                if cam_conf.abc_distortion_a is not None:
+                    lens_correction = ct.ABCDistortion(
+                        a=cam_conf.abc_distortion_a, 
+                        b=cam_conf.abc_distortion_b, 
+                        c=cam_conf.abc_distortion_c,
+                    )
+                if cam_conf.brown_distortion_k1 is not None:
+                    lens_correction = ct.BrownLensDistortion(
+                        k1=cam_conf.brown_distortion_k1,
+                        k2=cam_conf.brown_distortion_k2,
+                        k3=cam_conf.brown_distortion_k3,
+                    )
 
-            lens_correction = ct.NoDistortion()
-            if cam_conf.abc_distortion_a is not None:
-                lens_correction = ct.ABCDistortion(
-                    a=cam_conf.abc_distortion_a, 
-                    b=cam_conf.abc_distortion_b, 
-                    c=cam_conf.abc_distortion_c,
+                camera = ct.Camera(
+                    projection=ct.RectilinearProjection(
+                        focallength_mm=cam_conf.focallength_mm,
+                        sensor_height_mm=cam_conf.sensor_height_mm,
+                        sensor_width_mm=cam_conf.sensor_width_mm,
+                        image_height_px=cam_conf.image_height_px,
+                        image_width_px=cam_conf.image_width_px,
+                        view_x_deg=cam_conf.view_x_deg,
+                        view_y_deg=cam_conf.view_y_deg, 
+                    ),
+                    orientation=ct.SpatialOrientation(
+                        elevation_m=cam_conf.elevation_m,
+                        tilt_deg=cam_conf.tilt_deg,
+                        heading_deg=cam_conf.heading_deg,
+                        roll_deg=cam_conf.roll_deg,
+                    ),
+                    lens=lens_correction,
                 )
-            if cam_conf.brown_distortion_k1 is not None:
-                lens_correction = ct.BrownLensDistortion(
-                    k1=cam_conf.brown_distortion_k1,
-                    k2=cam_conf.brown_distortion_k2,
-                    k3=cam_conf.brown_distortion_k3,
-                )
+            
+                self._cameras[cam_conf.stream_id] = camera
 
-            camera = ct.Camera(
-                projection=ct.RectilinearProjection(
-                    focallength_mm=cam_conf.focallength_mm,
-                    sensor_height_mm=cam_conf.sensor_height_mm,
-                    sensor_width_mm=cam_conf.sensor_width_mm,
-                    image_height_px=cam_conf.image_height_px,
-                    image_width_px=cam_conf.image_width_px,
-                    view_x_deg=cam_conf.view_x_deg,
-                    view_y_deg=cam_conf.view_y_deg, 
-                ),
-                orientation=ct.SpatialOrientation(
-                    elevation_m=cam_conf.elevation_m,
-                    tilt_deg=cam_conf.tilt_deg,
-                    heading_deg=cam_conf.heading_deg,
-                    roll_deg=cam_conf.roll_deg,
-                ),
-                lens=lens_correction,
-            )
-            camera.setGPSpos(lat=cam_conf.pos_lat, lon=cam_conf.pos_lon)
-            self._cameras[cam_conf.stream_id] = camera
-
-            if cam_conf.mapping_area is not None:
-                self._mapping_areas[cam_conf.stream_id] = shape(cam_conf.mapping_area)
+                if cam_conf.mapping_area is not None:
+                    self._mapping_areas[cam_conf.stream_id] = shape(cam_conf.mapping_area)
 
     def __call__(self, input_proto) -> Any:
         return self.get(input_proto)
@@ -87,41 +86,44 @@ class GeoMapper:
     @GET_DURATION.time()
     def get(self, input_proto):
         sae_msg = self._unpack_proto(input_proto)
-        stream_id = sae_msg.frame.source_id
+        if not sae_msg.type == MessageType.SAE:
+            logger.warning(f'Unexpected message type {sae_msg.type}, discarding message')
+            return None
 
-        camera = self._cameras.get(stream_id)
-        
-        self._add_cam_location(sae_msg)
+        source_id = sae_msg.frame.source_id
 
-        if camera is None:
-            return self._pack_proto(sae_msg)
+        if not sae_msg.frame.HasField('camera_location'):
+            logger.warning(f'Camera location is not set, discarding message (source_id={source_id})')
+            return None
+
+        cam_config = self._cam_configs.get(source_id, None)
+
+        if cam_config is None:
+            logger.warning(f'No config for message source_id={source_id} found, possible stream_id/source_id mismatch, discarding message')
+            return None
         
-        self._transform_detections(sae_msg, camera)
+        if cam_config.mode == CameraMode.COPY:
+            self._transform_detections_copy(sae_msg)
+        elif cam_config.mode == CameraMode.MAP:
+            camera = self._cameras.get(source_id, None)
+            self._transform_detections_map(sae_msg, camera)
 
         return self._pack_proto(sae_msg)
-      
-    def _add_cam_location(self, sae_msg: SaeMessage):
-        '''Add camera location data, if location is configured (independent of the passthrough setting)'''
-        stream_id = sae_msg.frame.source_id
-        
-        if self._config.mapping_strategy.mode == MappingMode.static:
-            cam_lat = self._cam_configs[stream_id].pos_lat
-            cam_lon = self._cam_configs[stream_id].pos_lon
-            if cam_lat is not None and cam_lon is not None:
-                sae_msg.frame.camera_location.latitude = cam_lat
-                sae_msg.frame.camera_location.longitude = cam_lon
-        
-        if self._config.mapping_strategy.mode == MappingMode.dynamic:
-            if sae_msg.frame.camera_location != None or sae_msg.frame.camera_location.latitude != 0.0 :
-                for detection in sae_msg.detections:
-                    detection.geo_coordinate.latitude = sae_msg.frame.camera_location.latitude
-                    detection.geo_coordinate.longitude = sae_msg.frame.camera_location.longitude
-            else:
-                logger.warning(f'No camera location data in message for stream {stream_id}.')
-                pass
     
-    def _transform_detections(self, sae_msg: SaeMessage, camera: Camera) -> None:
+    def _transform_detections_copy(self, sae_msg: SaeMessage) -> None:
+        '''Copy camera location to all detections in the message'''
+        lat = sae_msg.frame.camera_location.latitude
+        lon = sae_msg.frame.camera_location.longitude
+
+        for detection in sae_msg.detections:
+            detection.geo_coordinate.latitude = lat
+            detection.geo_coordinate.longitude = lon
+      
+    def _transform_detections_map(self, sae_msg: SaeMessage, camera: Camera) -> None:
         '''Map detections into coordinate space, add coordinate to message and optionally filter detections that were not mapped'''
+        # Cameras can move, so we read the location from current message
+        camera.setGPSpos(sae_msg.frame.camera_location.latitude, sae_msg.frame.camera_location.longitude)
+        
         stream_id = sae_msg.frame.source_id
         image_height_px = camera.parameters.parameters['image_height_px'].value
         image_width_px = camera.parameters.parameters['image_width_px'].value

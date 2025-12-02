@@ -33,9 +33,6 @@ build-deb: check-settings set-version
 	mkdir -p target
 	mv ../${PACKAGE_NAME}_* target/
 
-test:
-	@echo "Unit tests not implemented yet"
-
 clean:
 	rm -rf dist
 	rm -rf target
