@@ -8,15 +8,15 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.14"
-pydantic = "^2.0.0"
+pydantic = "^2.12.5"
 visionapi = { git = "https://github.com/starwit/vision-api.git", subdirectory = "python/visionapi", tag = "3.5.0" }
 visionlib = { git = "https://github.com/starwit/vision-lib.git", subdirectory = "python", tag = "0.14.2" }
 pydantic-settings = "^2.0.3"
-prometheus-client = "^0.17.1"
+prometheus-client = "^0.23.1"
 cameratransform = "1.2.1"
-geojson-pydantic = "^1.1.2"
+geojson-pydantic = "^2.1.0"
 shapely = "^2.0.6"
-pytest = "8.4.1"
+pytest = "9.0.2"
 
 [build-system]
 requires = ["poetry-core"]
