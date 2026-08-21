@@ -75,8 +75,8 @@ def test_copy_mode(redis_publisher_mock, inject_consumer_messages, set_cameras_c
                                                       source_id='stream1',
                                                       location=(10.0, 20.0), 
                                                       detections=[
-                                                          _make_detection((0.5, 0.5), 1),
-                                                          _make_detection((0.6, 0.6), 2),
+                                                          _make_detection((0.5, 0.5, 0.5, 0.5), 1),
+                                                          _make_detection((0.6, 0.6, 0.6, 0.6), 2),
                                                       ])),
     ])
 
@@ -110,7 +110,7 @@ def test_map_mode_no_location(redis_publisher_mock, inject_consumer_messages, se
                                                       source_id='stream1',
                                                       location=None,
                                                       detections=[
-                                                          _make_detection((0.5, 0.5), 1),
+                                                          _make_detection((0.5, 0.5, 0.5, 0.5), 1),
                                                       ])),
     ])
 
@@ -135,7 +135,7 @@ def test_map_mode_with_location(redis_publisher_mock, inject_consumer_messages, 
                                                       source_id='stream1',
                                                       location=(10.0, 20.0),
                                                       detections=[
-                                                          _make_detection((0.5, 0.5), 1),  # center of image
+                                                          _make_detection((0.5, 0.5, 0.5, 0.5), 1),  # center of image
                                                       ])),
     ])
 
@@ -164,7 +164,7 @@ def test_map_mode_edge_detections_mapped_by_default(redis_publisher_mock, inject
                                                       source_id='stream1',
                                                       location=(10.0, 20.0),
                                                       detections=[
-                                                          _make_detection((0.5, 0.5), 1, size_xy=(1.0, 0.4)),  # touching left and right image border
+                                                          _make_detection((0.005, 0.4, 0.3, 0.6), 1),  # close to the left image border
                                                       ])),
     ])
 
@@ -184,21 +184,25 @@ def test_map_mode_ignore_edge_detections(redis_publisher_mock, inject_consumer_m
                                                       source_id='stream1',
                                                       location=(10.0, 20.0),
                                                       detections=[
-                                                          _make_detection((0.5, 0.5), 1, size_xy=(0.2, 0.2)),  # fully within the image
-                                                          _make_detection((0.5, 0.5), 2, size_xy=(1.0, 0.4)),  # touching left and right image border
-                                                          _make_detection((0.5, 0.8), 3, size_xy=(0.2, 0.4)),  # touching bottom image border
+                                                          _make_detection((0.4, 0.4, 0.6, 0.6), 1),      # well within the image
+                                                          _make_detection((0.02, 0.4, 0.3, 0.6), 2),     # close to the left image border, but still outside the tolerance band
+                                                          _make_detection((0.005, 0.4, 0.3, 0.6), 3),    # left image border, detected slightly inset
+                                                          _make_detection((0.4, 0.7, 0.6, 0.995), 4),    # bottom image border, detected slightly inset
+                                                          _make_detection((0.0, 0.4, 0.2, 0.6), 5),      # exactly on the left image border
                                                       ])),
     ])
 
     run_stage()
 
-    # Assert that all detections are retained, but only the non-edge one has been mapped
+    # Assert that all detections are retained, but only the ones outside the tolerance band around the image border have been mapped
     msg = SaeMessage()
     msg.ParseFromString(redis_publisher_mock.call_args_list[0].args[1])
-    assert len(msg.detections) == 3
+    assert len(msg.detections) == 5
     assert msg.detections[0].HasField('geo_coordinate')
-    assert not msg.detections[1].HasField('geo_coordinate')
+    assert msg.detections[1].HasField('geo_coordinate')
     assert not msg.detections[2].HasField('geo_coordinate')
+    assert not msg.detections[3].HasField('geo_coordinate')
+    assert not msg.detections[4].HasField('geo_coordinate')
 
 def test_map_mode_ignore_edge_detections_with_removal(redis_publisher_mock, inject_consumer_messages, set_cameras_config):
     set_cameras_config([_make_geomapping_config(ignore_edge_detections=True, remove_unmapped_detections=True)])
@@ -208,8 +212,8 @@ def test_map_mode_ignore_edge_detections_with_removal(redis_publisher_mock, inje
                                                       source_id='stream1',
                                                       location=(10.0, 20.0),
                                                       detections=[
-                                                          _make_detection((0.5, 0.5), 1, size_xy=(0.2, 0.2)),  # fully within the image
-                                                          _make_detection((0.5, 0.5), 2, size_xy=(1.0, 0.4)),  # touching left and right image border
+                                                          _make_detection((0.4, 0.4, 0.6, 0.6), 1),    # well within the image
+                                                          _make_detection((0.005, 0.4, 0.3, 0.6), 2),  # left image border, detected slightly inset
                                                       ])),
     ])
 
@@ -249,12 +253,13 @@ def _make_sae_msg_bytes(timestamp: int, source_id: str, location: Tuple[float, f
     sae_msg.type = MessageType.SAE
     return sae_msg.SerializeToString()
 
-def _make_detection(center_xy: Tuple[float], class_id: int, size_xy: Tuple[float] = (0.0, 0.0)) -> Detection:
+def _make_detection(bbox: Tuple[float, float, float, float], class_id: int) -> Detection:
+    '''bbox is (min_x, min_y, max_x, max_y) in normalized image coordinates'''
     detection = Detection()
-    detection.bounding_box.min_x = center_xy[0] - size_xy[0] / 2
-    detection.bounding_box.min_y = center_xy[1] - size_xy[1] / 2
-    detection.bounding_box.max_x = center_xy[0] + size_xy[0] / 2
-    detection.bounding_box.max_y = center_xy[1] + size_xy[1] / 2
+    detection.bounding_box.min_x = bbox[0]
+    detection.bounding_box.min_y = bbox[1]
+    detection.bounding_box.max_x = bbox[2]
+    detection.bounding_box.max_y = bbox[3]
     detection.confidence = 0.9
     detection.class_id = class_id
     return detection

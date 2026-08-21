@@ -22,8 +22,9 @@ OBJECT_COUNTER = Counter('geo_mapper_object_counter', 'How many detections have 
 PROTO_SERIALIZATION_DURATION = Summary('geo_mapper_proto_serialization_duration', 'The time it takes to create a serialized output proto')
 PROTO_DESERIALIZATION_DURATION = Summary('geo_mapper_proto_deserialization_duration', 'The time it takes to deserialize an input proto')
 
-# Bounding box coordinates are normalized to [0, 1], this tolerance compensates for float inaccuracies when comparing against the image border
-EDGE_TOLERANCE = 1e-6
+# Bounding box coordinates are normalized to [0, 1]. Partly visible objects are often not detected exactly on the image border
+# (e.g. because the model runs on a lower resolution), therefore this tolerance band around the border is considered "edge" as well.
+EDGE_TOLERANCE = 0.01
 
 class Point(NamedTuple):
     x: float
