@@ -22,6 +22,9 @@ OBJECT_COUNTER = Counter('geo_mapper_object_counter', 'How many detections have 
 PROTO_SERIALIZATION_DURATION = Summary('geo_mapper_proto_serialization_duration', 'The time it takes to create a serialized output proto')
 PROTO_DESERIALIZATION_DURATION = Summary('geo_mapper_proto_deserialization_duration', 'The time it takes to deserialize an input proto')
 
+# Bounding box coordinates are normalized to [0, 1], this tolerance compensates for float inaccuracies when comparing against the image border
+EDGE_TOLERANCE = 1e-6
+
 class Point(NamedTuple):
     x: float
     y: float
@@ -125,6 +128,7 @@ class GeoMapper:
         camera.setGPSpos(sae_msg.frame.camera_location.latitude, sae_msg.frame.camera_location.longitude)
         
         stream_id = sae_msg.frame.source_id
+        cam_config = self._cam_configs[stream_id]
         image_height_px = camera.parameters.parameters['image_height_px'].value
         image_width_px = camera.parameters.parameters['image_width_px'].value
 
@@ -132,6 +136,9 @@ class GeoMapper:
 
         with TRANSFORM_DURATION.time():
             for detection in sae_msg.detections:
+                if cam_config.ignore_edge_detections and self._is_edge_detection(detection.bounding_box):
+                    logger.debug(f'SKIPPED (edge detection): cls {detection.class_id}, oid {detection.object_id.hex()}')
+                    continue
                 center = self._get_center(detection.bounding_box)
                 gps = camera.gpsFromImage([center.x * image_width_px, center.y * image_height_px], Z=self._config.object_center_elevation_m)
                 lat, lon = gps[0], gps[1]
@@ -143,7 +150,7 @@ class GeoMapper:
                 retained_detections.append(detection)
                 logger.debug(f'cls {detection.class_id}, oid {detection.object_id.hex()}, lat {lat}, lon {lon}')
         
-        if self._cam_configs[stream_id].remove_unmapped_detections:
+        if cam_config.remove_unmapped_detections:
             sae_msg.ClearField('detections')
             sae_msg.detections.extend(retained_detections)
 
@@ -153,6 +160,13 @@ class GeoMapper:
             y=(bbox.min_y + bbox.max_y) / 2
         )
     
+    def _is_edge_detection(self, bbox: BoundingBox) -> bool:
+        '''A detection is considered an edge detection if its bounding box touches (or exceeds) the image border'''
+        return (bbox.min_x <= EDGE_TOLERANCE
+                or bbox.min_y <= EDGE_TOLERANCE
+                or bbox.max_x >= 1 - EDGE_TOLERANCE
+                or bbox.max_y >= 1 - EDGE_TOLERANCE)
+
     def _is_filtered(self, cam_id: str, lat: float, lon: float):
         if cam_id in self._mapping_areas:
             point = ShapelyPoint(lon, lat)

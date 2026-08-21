@@ -45,6 +45,7 @@ class CameraGeomappingConfig(BaseModel):
     brown_distortion_k2: Optional[float] = None
     brown_distortion_k3: Optional[float] = None
     mapping_area: Optional[Polygon] = None
+    ignore_edge_detections: bool = False
     remove_unmapped_detections: bool = False
 
 CameraConfig = Annotated[CameraGeomappingConfig | CameraCopyConfig, Field(discriminator='mode')]

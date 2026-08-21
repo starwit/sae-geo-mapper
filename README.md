@@ -20,6 +20,8 @@ See [dev readme](doc/DEV_README.md) for build & package instructions.
 - **Output** is the input `SaeMessage` with geo-coordinates added to every `Detection`. All other fields are preserved.
 
 # Changelog
+## 1.1.0
+- Add camera config option `ignore_edge_detections`: If set, detections whose bounding box touches the image border are not mapped (image space counterpart to the `mapping_area` geo-fence). Like geo-fenced detections, they are subject to `remove_unmapped_detections`.
 ## 1.0.0
 - Refactor config and slightly change the role of this component within the SAE. Camera location data has now been fully moved to the position-source.
   - `copy` and `map` mode
